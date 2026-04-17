@@ -1,0 +1,23 @@
+server:
+  port: ${SERVER_PORT:8088}
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:dev-only-change-me-dev-only-change-me-123456}
+  dashboard:
+    low-balance-threshold: ${APP_DASHBOARD_LOW_BALANCE_THRESHOLD:100.00}
+  services:
+    customer-url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+    account-url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
+    transaction-url: ${TRANSACTION_SERVICE_URL:http://localhost:8084}
+    transfer-url: ${TRANSFER_SERVICE_URL:http://localhost:8085}
+    payment-url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

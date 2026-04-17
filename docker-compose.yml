@@ -1,0 +1,146 @@
+version: "3.9"
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+
+x-java-service-env: &java-service-env
+  SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
+  SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-root}
+  APP_JWT_SECRET: ${APP_JWT_SECRET:-dev-only-change-me-dev-only-change-me-123456}
+
+services:
+  mysql:
+    <<: *service-defaults
+    image: mysql:8.4
+    container_name: finance-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/db/init:/docker-entrypoint-initdb.d
+
+  auth-service:
+    <<: *service-defaults
+    build: ./backend/auth-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8081
+    depends_on: [mysql]
+    ports: ["${AUTH_SERVICE_PORT:-8081}:8081"]
+
+  customer-service:
+    <<: *service-defaults
+    build: ./backend/customer-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8082
+    depends_on: [mysql, auth-service]
+    ports: ["${CUSTOMER_SERVICE_PORT:-8082}:8082"]
+
+  account-service:
+    <<: *service-defaults
+    build: ./backend/account-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/account_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8083
+    depends_on: [mysql, auth-service]
+    ports: ["${ACCOUNT_SERVICE_PORT:-8083}:8083"]
+
+  transaction-service:
+    <<: *service-defaults
+    build: ./backend/transaction-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/transaction_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8084
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+    depends_on: [mysql, account-service]
+    ports: ["${TRANSACTION_SERVICE_PORT:-8084}:8084"]
+
+  transfer-service:
+    <<: *service-defaults
+    build: ./backend/transfer-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/transfer_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8085
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+    depends_on: [mysql, account-service]
+    ports: ["${TRANSFER_SERVICE_PORT:-8085}:8085"]
+
+  payment-service:
+    <<: *service-defaults
+    build: ./backend/payment-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8086
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+    depends_on: [mysql, account-service]
+    ports: ["${PAYMENT_SERVICE_PORT:-8086}:8086"]
+
+  report-service:
+    <<: *service-defaults
+    build: ./backend/report-service
+    environment:
+      <<: *java-service-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/report_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SERVER_PORT: 8087
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_INTERNAL_URL:-http://transaction-service:8084}
+      TRANSFER_SERVICE_URL: ${TRANSFER_SERVICE_INTERNAL_URL:-http://transfer-service:8085}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_INTERNAL_URL:-http://payment-service:8086}
+    depends_on: [mysql, account-service, transaction-service, transfer-service, payment-service]
+    ports: ["${REPORT_SERVICE_PORT:-8087}:8087"]
+
+  dashboard-service:
+    <<: *service-defaults
+    build: ./backend/dashboard-service
+    environment:
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-dev-only-change-me-dev-only-change-me-123456}
+      SERVER_PORT: 8088
+      CUSTOMER_SERVICE_URL: ${CUSTOMER_SERVICE_INTERNAL_URL:-http://customer-service:8082}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_INTERNAL_URL:-http://transaction-service:8084}
+      TRANSFER_SERVICE_URL: ${TRANSFER_SERVICE_INTERNAL_URL:-http://transfer-service:8085}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_INTERNAL_URL:-http://payment-service:8086}
+    depends_on: [customer-service, account-service, transaction-service, transfer-service, payment-service]
+    ports: ["${DASHBOARD_SERVICE_PORT:-8088}:8088"]
+
+  api-gateway:
+    <<: *service-defaults
+    build: ./backend/api-gateway
+    environment:
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-dev-only-change-me-dev-only-change-me-123456}
+      SERVER_PORT: 8080
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_INTERNAL_URL:-http://auth-service:8081}
+      CUSTOMER_SERVICE_URL: ${CUSTOMER_SERVICE_INTERNAL_URL:-http://customer-service:8082}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_INTERNAL_URL:-http://account-service:8083}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_INTERNAL_URL:-http://transaction-service:8084}
+      TRANSFER_SERVICE_URL: ${TRANSFER_SERVICE_INTERNAL_URL:-http://transfer-service:8085}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_INTERNAL_URL:-http://payment-service:8086}
+      REPORT_SERVICE_URL: ${REPORT_SERVICE_INTERNAL_URL:-http://report-service:8087}
+      DASHBOARD_SERVICE_URL: ${DASHBOARD_SERVICE_INTERNAL_URL:-http://dashboard-service:8088}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on: [auth-service, customer-service, account-service, transaction-service, transfer-service, payment-service, report-service, dashboard-service, redis]
+    ports: ["${API_GATEWAY_PORT:-8080}:8080"]
+
+  redis:
+    <<: *service-defaults
+    image: redis:7-alpine
+    ports: ["${REDIS_PORT:-6379}:6379"]
+
+  frontend:
+    <<: *service-defaults
+    build: ./frontend/angular-app
+    ports: ["${FRONTEND_PORT:-4200}:80"]
+    depends_on: [api-gateway]
+
+volumes:
+  mysql_data:

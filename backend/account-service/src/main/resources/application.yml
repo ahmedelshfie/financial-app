@@ -1,0 +1,40 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/account_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    # Disable the anti-pattern of keeping a JPA session open during view rendering
+    open-in-view: false
+    # Avoid logging SQL in production — enable locally via environment variable if needed
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  jackson:
+    # Omit null fields from all JSON responses for a cleaner API surface
+    default-property-inclusion: non_null
+    # Accept enum values case-insensitively (e.g. "debit" == "DEBIT")
+    mapper:
+      accept-case-insensitive-enums: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:dev-only-change-me-dev-only-change-me-123456}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

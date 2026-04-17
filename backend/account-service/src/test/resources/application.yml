@@ -1,0 +1,5 @@
+# Test configuration — used by all @WebMvcTest slices
+# No real DB needed for unit/slice tests
+app:
+  jwt:
+    secret: test-secret-key-only-for-unit-testing-purposes-123456

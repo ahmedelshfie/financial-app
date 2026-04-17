@@ -1,0 +1,55 @@
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Angular
+.angular/
+
+# =========================
+# Backend (Java / Maven)
+# =========================
+**/target/
+*.jar
+*.war
+*.ear
+
+# Test reports
+**/surefire-reports/
+**/failsafe-reports/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+*.env.*
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Python (if used)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

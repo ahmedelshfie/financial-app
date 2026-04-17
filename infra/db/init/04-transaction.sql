@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS transaction_db; USE transaction_db;
+CREATE TABLE IF NOT EXISTS transaction_types (id BIGINT PRIMARY KEY AUTO_INCREMENT, code VARCHAR(30) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL);
+CREATE TABLE IF NOT EXISTS transactions (id BIGINT PRIMARY KEY AUTO_INCREMENT, transaction_reference VARCHAR(50) NOT NULL UNIQUE, source_account_id BIGINT NULL, destination_account_id BIGINT NULL, transaction_type_id BIGINT NOT NULL, amount DECIMAL(18,2) NOT NULL, currency_code VARCHAR(10) NOT NULL, status VARCHAR(30) NOT NULL, description VARCHAR(255), initiated_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, CONSTRAINT fk_transactions_type FOREIGN KEY (transaction_type_id) REFERENCES transaction_types(id));
+INSERT IGNORE INTO transaction_types(id,code,name) VALUES (1,'TRANSFER','Transfer'),(2,'DEPOSIT','Deposit'),(3,'WITHDRAWAL','Withdrawal');
